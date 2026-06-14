@@ -30,6 +30,24 @@ make
 ./dcc-shield paru -S target-package
 ```
 
+## Auditability & Verification
+
+For a security tool to be trustworthy, its enforcement must be verifiable. `dcc-shield` includes a professional test suite to provide empirical proof of isolation.
+
+### Running the Test Suite
+The included `test-sandbox.sh` script automates the verification process:
+
+```bash
+# Requirements: strace, curl, grep
+chmod +x test-sandbox.sh
+./test-sandbox.sh
+```
+
+### What is being verified?
+1.  **Syscall Interception:** Uses `strace` to confirm that the `connect()` syscall is physically blocked or results in a network error (e.g., DNS failure due to isolation).
+2.  **Inheritance Proof:** Spawns a sub-shell and attempts a network operation to ensure that child processes (like those spawned by `paru` or `make`) cannot escape the sandbox.
+3.  **Kernel Integration:** Validates that the tool correctly identifies the kernel's Landlock ABI version and applies the appropriate security layer (Landlock or Namespaces).
+
 ---
 **MetaSpace.Bio Logic Engine Project**  
 [metaspace.bio](https://metaspace.bio) | admin@metaspace.bio
