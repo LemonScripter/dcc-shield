@@ -1,51 +1,35 @@
 # dcc-shield: Zero-Dependency AUR Sandbox
 
-`dcc-shield` is a lightweight, zero-dependency security wrapper designed to protect your system from supply-chain attacks during AUR package builds. It utilizes the **Linux Landlock LSM** and **Network Namespaces** to enforce a "default-deny" network policy on any process it wraps.
+`dcc-shield` is a lightweight security wrapper designed to protect Arch Linux users from supply-chain attacks during AUR package builds. It enforces a **"Default-Deny"** network policy on any process it wraps, ensuring that malicious `PKGBUILD` scripts cannot exfiltrate sensitive data (like `~/.ssh` or environment variables).
 
-## The Problem: Unvetted PKGBUILDs
+## Security Architecture
 
-AUR (Arch User Repository) helpers like `paru` or `yay` rely on `PKGBUILD` scripts. As highlighted in recent security discussions (e.g., [HUP.hu #190052](https://hup.hu/node/190052)), these scripts can be modified to execute malicious code during the build process. A common attack vector is data exfiltration—stealing your `~/.ssh` keys, environment variables, or private data and sending it to a remote server.
+The tool utilizes a **Dual-Layer Causal Enforcement** logic:
 
-While manual code review is the first line of defense, human error or complex obfuscation can lead to missed threats.
+1.  **Primary Layer: Landlock LSM (Kernel 6.7+)**
+    - Leverages the official `go-landlock` library to enforce network restrictions at the kernel level.
+    - Specifically handles `LANDLOCK_ACCESS_NET_CONNECT_TCP` and `LANDLOCK_ACCESS_NET_BIND_TCP` with no allowed rules, creating a total network blackout for the process.
+    - Security context is automatically inherited by all child processes (make, gcc, scripts).
 
-## The Solution: dcc-shield
+2.  **Secondary Layer: Linux Namespaces (Kernel 5.13+)**
+    - If Landlock network support is unavailable, the tool transparently falls back to **Network Namespaces** (`CLONE_NEWNET`).
+    - The process is executed in a detached network namespace with no interfaces (no `eth0`, no `lo`), making network communication physically impossible.
+    - Uses **User Namespaces** (`CLONE_NEWUSER`) with proper UID/GID mapping to ensure full compatibility with unprivileged AUR builds.
 
-`dcc-shield` provides a **Zero-Trust safety net**. It ensures that even if a malicious script executes, it has **no way to reach the internet**.
+## Professional Context
 
-1.  **Zero Dependencies:** A single static binary. No eBPF, no Python, no extra libraries. It runs where your AUR helper runs.
-2.  **Kernel Native:** It uses Landlock (Kernel 6.7+) or falls back to Network Namespaces (Kernel 5.13+).
-3.  **Default-Deny:** The wrapped process and all its children have **zero** network access.
+`dcc-shield` implements the **Digital Causal Closure (DCC)** principle. By restricting the network capability at the moment of process creation, we break the causal lánc (chain) required for a data exfiltration attack to succeed. Even if a zero-day exploit allows code execution within the build script, the attacker is trapped in a network-silent environment.
 
-## Community Context
+## Usage
 
-For the Linux systems engineering community, security should be simple, auditable, and dependency-free. `dcc-shield` implements the **Digital Causal Closure (DCC)** principle: by breaking the network capability before execution, we break the causal chain required for a successful data exfiltration attack.
+```bash
+# Build the static binary
+make
 
-## Requirements
-
-- **Linux Kernel 6.7+** for native Landlock network support.
-- **Linux Kernel 5.13+** for fallback mode (Network Namespaces + User Namespaces).
-- **Landlock enabled** in your kernel (`lsm=landlock` in boot parameters).
-
-## How to use
-
-1.  **Build the tool:**
-    ```bash
-    make
-    ```
-2.  **Wrap your command:**
-    ```bash
-    ./dcc-shield paru -S some-package
-    ```
-
-If the process attempts a network connection on a supported kernel, Landlock will block the syscall. On older kernels, the process will execute in a detached network namespace with no connectivity.
-
-## Technical Details
-
-- **Language:** Go (Static binary, zero dependencies).
-- **Primary Mechanism:** `landlock_create_ruleset`, `landlock_restrict_self`.
-- **Fallback Mechanism:** `CLONE_NEWNET` | `CLONE_NEWUSER` (Namespace Isolation).
+# Wrap your AUR helper
+./dcc-shield paru -S target-package
+```
 
 ---
 **MetaSpace.Bio Logic Engine Project**  
 [metaspace.bio](https://metaspace.bio) | admin@metaspace.bio
-
