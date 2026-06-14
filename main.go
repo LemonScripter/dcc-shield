@@ -8,15 +8,19 @@ import (
 	"unsafe"
 )
 
-// Landlock constants for Linux
+// Landlock and Prctl constants
 const (
 	SYS_LANDLOCK_CREATE_RULESET = 444
-	SYS_LANDLOCK_RESTRICT_SELF  = 446
+	SYS_LANDLOCK_ADD_RULE        = 445
+	SYS_LANDLOCK_RESTRICT_SELF   = 446
 
 	LANDLOCK_CREATE_RULESET_VERSION = 1 << 0
+	LANDLOCK_RULE_NET_PORT          = 2
 
 	LANDLOCK_ACCESS_NET_BIND_TCP    = 1 << 0
 	LANDLOCK_ACCESS_NET_CONNECT_TCP = 1 << 1
+
+	PR_SET_NO_NEW_PRIVS = 38
 )
 
 type landlockRulesetAttr struct {
@@ -24,6 +28,12 @@ type landlockRulesetAttr struct {
 	HandledAccessNet uint64
 }
 
+type landlockNetPortAttr struct {
+	AllowedAccess uint64
+	Port          uint64
+}
+
+// getLandlockABI queries the supported Landlock ABI version.
 func getLandlockABI() int {
 	res, _, err := syscall.Syscall(SYS_LANDLOCK_CREATE_RULESET, 0, 0, LANDLOCK_CREATE_RULESET_VERSION)
 	if err != 0 {
@@ -32,79 +42,98 @@ func getLandlockABI() int {
 	return int(res)
 }
 
+// restrictSelf enforces the created ruleset on the calling process and its future children.
+func restrictSelf(rulesetFd uintptr) error {
+	// PR_SET_NO_NEW_PRIVS is a prerequisite for Landlock if the process is not privileged.
+	_, _, err := syscall.Syscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0)
+	if err != 0 {
+		return fmt.Errorf("failed to set no_new_privs: %v", err)
+	}
+
+	_, _, err = syscall.Syscall(SYS_LANDLOCK_RESTRICT_SELF, rulesetFd, 0, 0)
+	if err != 0 {
+		return fmt.Errorf("failed to enforce ruleset (restrict_self): %v", err)
+	}
+	return nil
+}
+
 func main() {
 	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "dcc-shield: Zero-dependency network sandbox wrapper\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s <command> [args...]\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Example: %s paru -S google-chrome\n", os.Args[0])
 		os.Exit(1)
 	}
 
 	abi := getLandlockABI()
 	useLandlockNet := abi >= 4
 
-	if !useLandlockNet {
-		fmt.Printf("[dcc-shield] Landlock ABI v%d (Network support requires v4+).\n", abi)
-		fmt.Println("[dcc-shield] Falling back to Network Namespaces (CLONE_NEWNET) for isolation.")
-	} else {
-		fmt.Printf("[dcc-shield] Using Landlock ABI v%d for network isolation.\n", abi)
-	}
+	fmt.Printf("[dcc-shield] Initializing security layers (Kernel ABI v%d)...\n", abi)
 
-	// 1. Prepare Command
+	// Setup Command
 	targetCmd := os.Args[1]
 	targetArgs := os.Args[1:]
-
 	cmd := exec.Command(targetCmd, targetArgs[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// 2. Apply Network Isolation
 	if useLandlockNet {
-		// Use Landlock for Network (Kernel 6.7+)
-		var attr landlockRulesetAttr
-		attr.HandledAccessNet = LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP
+		// 1. Create Ruleset
+		// We explicitly handle both Bind and Connect to ensure a default-deny policy.
+		attr := landlockRulesetAttr{
+			HandledAccessNet: LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP,
+		}
 		
 		res, _, err := syscall.Syscall(SYS_LANDLOCK_CREATE_RULESET, uintptr(unsafe.Pointer(&attr)), 16, 0)
 		if err != 0 {
-			fmt.Fprintf(os.Stderr, "[dcc-shield] Error creating Landlock ruleset: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[dcc-shield] CRITICAL: landlock_create_ruleset failed: %v\n", err)
 			os.Exit(1)
 		}
-		fd := uintptr(res)
-		defer syscall.Close(int(fd))
+		rulesetFd := uintptr(res)
+		defer syscall.Close(int(rulesetFd))
 
-		_, _, err = syscall.Syscall(SYS_LANDLOCK_RESTRICT_SELF, fd, 0, 0)
-		if err != 0 {
-			fmt.Fprintf(os.Stderr, "[dcc-shield] Error enforcing Landlock sandbox: %v\n", err)
+		// 2. Populate Ruleset (Optional)
+		// To block all network, we simply add NO rules to the ruleset.
+		// However, to demonstrate 'landlock_add_rule' implementation:
+		// Example: Allowing localhost/port 80 would look like this:
+		/*
+		portAttr := landlockNetPortAttr{
+			AllowedAccess: LANDLOCK_ACCESS_NET_CONNECT_TCP,
+			Port:          80,
+		}
+		_, _, err = syscall.Syscall(SYS_LANDLOCK_ADD_RULE, rulesetFd, LANDLOCK_RULE_NET_PORT, uintptr(unsafe.Pointer(&portAttr)))
+		*/
+
+		// 3. Restrict Self
+		if err := restrictSelf(rulesetFd); err != nil {
+			fmt.Fprintf(os.Stderr, "[dcc-shield] CRITICAL: Security enforcement failed: %v\n", err)
 			os.Exit(1)
 		}
+		fmt.Println("[dcc-shield] Landlock network shield ACTIVE.")
+
 	} else {
-		// Use Network Namespace + User Namespace (Reliable fallback for all modern kernels)
-		// We map the current user to root inside the namespace to allow executing scripts.
+		// Fallback for older kernels (ABI < 4)
+		fmt.Println("[dcc-shield] WARNING: Landlock network support requires Kernel 6.7+. Falling back to Namespaces.")
+		
+		// Map current UID/GID to Root inside the namespace to maintain filesystem access for AUR builds.
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			Unshareflags: syscall.CLONE_NEWNET | syscall.CLONE_NEWUSER,
 			UidMappings: []syscall.SysProcIDMap{
-				{
-					ContainerID: 0,
-					HostID:      os.Getuid(),
-					Size:        1,
-				},
+				{ContainerID: 0, HostID: os.Getuid(), Size: 1},
 			},
 			GidMappings: []syscall.SysProcIDMap{
-				{
-					ContainerID: 0,
-					HostID:      os.Getgid(),
-					Size:        1,
-				},
+				{ContainerID: 0, HostID: os.Getgid(), Size: 1},
 			},
 		}
+		fmt.Println("[dcc-shield] CLONE_NEWNET network isolation ACTIVE.")
 	}
 
-	fmt.Printf("[dcc-shield] Executing '%s'...\n", targetCmd)
+	fmt.Printf("[dcc-shield] Executing target: %s\n", targetCmd)
 	if err := cmd.Run(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			os.Exit(exitError.ExitCode())
 		}
-		fmt.Fprintf(os.Stderr, "[dcc-shield] Command failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[dcc-shield] Execution failed: %v\n", err)
 		os.Exit(1)
 	}
 }
