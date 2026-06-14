@@ -16,9 +16,13 @@ The tool utilizes a **Dual-Layer Causal Enforcement** logic:
     - The process is executed in a detached network namespace with no interfaces (no `eth0`, no `lo`), making network communication physically impossible.
     - Uses **User Namespaces** (`CLONE_NEWUSER`) with proper UID/GID mapping to ensure full compatibility with unprivileged AUR builds.
 
+## Limitations & Scope
+
+`dcc-shield` specifically targets network exfiltration, the most common goal of AUR-based supply-chain attacks. It is **not** a complete replacement for manual `PKGBUILD` reviews. While it effectively isolates the process from the internet, it does not currently restrict filesystem modifications (e.g., persistent backdoors or malicious file tampering). The tool's primary mission is to prevent "data theft" (exfiltration) during the critical build phase.
+
 ## Professional Context
 
-`dcc-shield` implements the **Digital Causal Closure (DCC)** principle. By restricting the network capability at the moment of process creation, we break the causal lánc (chain) required for a data exfiltration attack to succeed. Even if a zero-day exploit allows code execution within the build script, the attacker is trapped in a network-silent environment.
+`dcc-shield` implements the **Digital Causal Closure (DCC)** principle. By restricting the network capability at the moment of process creation, we break the causal chain required for a data exfiltration attack to succeed. Even if a zero-day exploit allows code execution within the build script, the attacker is trapped in a network-silent environment.
 
 ## Usage
 
@@ -47,6 +51,10 @@ chmod +x test-sandbox.sh
 1.  **Syscall Interception:** Uses `strace` to confirm that the `connect()` syscall is physically blocked or results in a network error (e.g., DNS failure due to isolation).
 2.  **Inheritance Proof:** Spawns a sub-shell and attempts a network operation to ensure that child processes (like those spawned by `paru` or `make`) cannot escape the sandbox.
 3.  **Kernel Integration:** Validates that the tool correctly identifies the kernel's Landlock ABI version and applies the appropriate security layer (Landlock or Namespaces).
+
+## Feedback & Contributions
+
+This project serves as a practical demonstration of the **Digital Causal Closure (DCC)** principle. The source code is open for audit and the tests are fully automated. We actively welcome contributions and feedback regarding the refinement of Landlock rules or the integration of other kernel-native isolation mechanisms, such as `seccomp-bpf`.
 
 ---
 **MetaSpace.Bio Logic Engine Project**  
