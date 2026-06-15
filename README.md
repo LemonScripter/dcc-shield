@@ -1,6 +1,6 @@
 # dcc-shield (v2.0): AUR Workflow Causal Enforcer
 
-[![Verified](https://img.shields.io/badge/Verified-Tokyo--Node-green)](VERIFICATION.md)
+[![Verified](https://img.shields.io/badge/Verified-Tokyo--Node-green)](https://github.com/LemonScripter/dcc-shield/blob/master/VERIFICATION.md)
 [![Status](https://img.shields.io/badge/Status-Hardened--STABLE-blue)](README.md)
 [![Project](https://img.shields.io/badge/BioOS-Causal--Security-green)](https://bioos.metaspace.bio)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20384700-purple)](https://doi.org/10.5281/zenodo.20384700)
