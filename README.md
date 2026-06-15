@@ -2,6 +2,13 @@
 
 `dcc-shield` targets the Arch Linux AUR package installation workflow, transforming it into a formally constrained **Digital Causal Closure (DCC)** scope. It reduces the risk of supply-chain exfiltration and malicious build-script behavior by bounding the build/install process within a policy-compliant causal universe.
 
+## Scientific Foundation
+
+The enforcement mechanisms used in this tool are practical implementations of the causal isolation principles detailed in the MetaSpace research:
+
+- **Research Paper:** The Causal Operating System: Digital Causal Closure for Autonomous Systems ([DOI: 10.5281/zenodo.20384700](https://doi.org/10.5281/zenodo.20384700))
+- **Formal Specification:** [BioOS Causal Constitution (PDF)](https://metaspace.bio/bioos_causal_constitution_en.pdf)
+
 ## Threat Model & Scope (AUR-Specific)
 
 - **Attacker Capabilities:** We assume a malicious AUR `PKGBUILD`, downloaded source, or build-time script executing with the privileges of the build user.
