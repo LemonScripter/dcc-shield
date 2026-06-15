@@ -6,14 +6,14 @@
 
 - **Attacker Capabilities:** We assume the attacker has successfully injected malicious code into an AUR `PKGBUILD` or its downloaded source, which executes under the build user’s privileges.
 - **In Scope:** `dcc-shield` specifically targets **outbound network exfiltration** during the execution of the wrapped command. 
-- **Out of Scope:** `dcc-shield` is **not** a replacement for manual `PKGBUILD` reviews. It does **not** restrict filesystem modifications. An attacker can still tamper with the built package, drop persistent backdoors, or alter local files accessible to the build user. Filesystem tampering and local persistence are explicitly out of scope.
+- **Out of Scope:** `dcc-shield` is **not** a replacement for manual `PKGBUILD` reviews. It does **not** restrict filesystem modifications. An attacker can still tamper with the built package, drop persistent backdoors, or alter local files accessible to the build user. Filesystem tampering, local persistence, and built-package modifications are explicitly out of scope.
 
 ## Security Architecture & Failure Modes
 
-The tool utilizes a dual-layer network enforcement logic. It is designed to fail closed on critical setup errors but falls back gracefully across isolation layers where appropriate.
+The tool utilizes a dual-layer network enforcement design. It is engineered to fail closed on critical setup errors but falls back gracefully across isolation layers where appropriate.
 
 1.  **Primary Layer: Landlock LSM (Kernel 6.7+)**
-    - Leverages the `go-landlock` library to restrict TCP network capabilities.
+    - Leverages the `go-landlock` library to restrict TCP capabilities.
     - Specifically restricts `LANDLOCK_ACCESS_NET_CONNECT_TCP` and `LANDLOCK_ACCESS_NET_BIND_TCP` through port-based controls.
     - **Note:** This is a capability-based restriction, not domain/IP allowlisting.
     - The enforced security context is inherited by all child processes.
@@ -21,9 +21,9 @@ The tool utilizes a dual-layer network enforcement logic. It is designed to fail
 
 2.  **Secondary Layer: Linux Namespaces (Kernel 5.13+)**
     - If Landlock network support is unavailable, the tool uses an isolated network namespace (`CLONE_NEWNET`).
-    - The wrapped process is not exposed to external network interfaces, effectively isolating it from the host network.
-    - Uses User Namespaces (`CLONE_NEWUSER`) with UID/GID mapping for compatibility with unprivileged builds.
-    - **Failure Mode:** If the namespace fallback also fails, the tool **exits closed** and aborts the build process.
+    - The wrapped process is not exposed to external network interfaces and is isolated from the host network.
+    - Uses `CLONE_NEWUSER` with UID/GID mapping for compatibility with unprivileged builds.
+    - **Failure Mode:** If the namespace fallback also fails, the tool **exits closed** and aborts the build process to prevent unshielded execution.
 
 ## Coverage Matrix
 
@@ -58,9 +58,9 @@ chmod +x test-sandbox.sh
 ```
 
 ### What is being verified?
-1.  **Syscall Denied:** Uses `strace` to confirm that the `connect()` syscall results in a network error or is denied by the kernel.
+1.  **Syscall Denied:** Uses `strace` to confirm that the `connect()` syscall is denied or results in a network error.
 2.  **Inheritance Proof:** Spawns a sub-shell and attempts a network operation to ensure that child processes cannot escape the sandbox.
-3.  **Capability Selection:** Verifies that the tool correctly detects kernel capabilities and selects the appropriate layer (Landlock or namespace fallback).
+3.  **Capability Selection:** Verifies that the tool correctly detects kernel capabilities and selects either Landlock or the namespace fallback as appropriate.
 
 ## Feedback & Contributions
 
