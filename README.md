@@ -5,68 +5,78 @@
 [![Project](https://img.shields.io/badge/BioOS-Causal--Security-green)](https://bioos.metaspace.bio)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20384700-purple)](https://doi.org/10.5281/zenodo.20384700)
 
-`dcc-shield` targets the Arch Linux AUR package installation workflow, transforming it into a formally constrained **Digital Causal Closure (DCC)** scope. It reduces the risk of supply-chain exfiltration and malicious build-script behavior by bounding the build/install process within a policy-compliant causal universe.
+`dcc-shield` targets the Arch Linux AUR package installation workflow and constrains it within a Digital Causal Closure (DCC)-defined scope. It reduces the risk of supply-chain exfiltration and malicious build-script behavior during AUR installs.
 
-## Scientific Foundation
+## Scientific Foundation and Lineage
 
-The enforcement mechanisms used in this tool are practical implementations of the causal isolation principles detailed in the MetaSpace research:
+The design and enforcement mechanics of this tool are direct practical implementations of the author's broader research into Digital Causal Closure (DCC). These background materials serve as the conceptual foundation and architectural lineage for the tool:
 
 - **Research Paper:** The Causal Operating System: Digital Causal Closure for Autonomous Systems ([DOI: 10.5281/zenodo.20384700](https://doi.org/10.5281/zenodo.20384700))
 - **Formal Specification:** [BioOS Causal Constitution (PDF)](https://bioos.metaspace.bio/bioos_causal_constitution_en.pdf)
 
+## Scope and Threat Model
+
+This tool's current scope is AUR package installation on Arch Linux. It is designed to mitigate risks during the build/install phase, such as malicious `PKGBUILD` scripts or compromised downloaded source code. Manual `PKGBUILD` review remains valuable; this tool is not a substitute for it.
+
+**In-Scope Threats:**
+- Outbound network exfiltration
+- Filesystem tampering
+- SSH key and secret theft
+- Environment variable theft
+- Child-process escape attempts
+
+**Out-of-Scope Threats:**
+- Compromised kernel or firmware attacks
+- Physical intrusion
+- General host hardening
+- Trusting the system on an already compromised machine
+
+*(See [THREAT_MODEL.md](THREAT_MODEL.md) for further details.)*
+
 ## Hardened Architecture
 
-The v2.0 engine implements a multi-layer isolation model to ensure the AUR install process remains causally closed. Within the DCC-defined universe, only policy-compliant actions may execute.
+The enforcement relies on a multi-layer isolation model:
 
-### Smart Fallback & Zero-Residue Lifecycle
-- **Adaptive Enforcement:** The tool automatically detects kernel capabilities. On modern kernels (**6.7+**), it uses native Landlock network restrictions. On older kernels (e.g., the **LTS 6.1** used in our Tokyo research node), it seamlessly falls back to isolated **Network Namespaces**, ensuring consistent protection across environments.
-- **Zero-Residue:** `dcc-shield` operates as a transient wrapper. It exists only for the duration of the build/install process and leaves no background daemons or permanent system modifications behind.
+- **Filesystem Layer:** Mediated by the available Landlock ABI and a project-defined allowlist.
+- **Network Layer:** Enforced by native Landlock network capabilities where available; otherwise, it uses an isolated network namespaces fallback.
+- **Secrets Layer:** Utilizes explicit allowlist-based environment scrubbing.
+- **Process Layer:** Ensures descendant processes inherit the same enforcement context. It uses `CLONE_NEWUSER` with UID/GID mapping as a compatibility mechanism for unprivileged builds in namespace fallback mode.
 
-### 1. Filesystem Layer (Landlock LSM)
-- Enforces a strict allowlist mediated by the available Landlock ABI: Read and Execute access to the standard toolchain (`/usr`, `/lib`, `/lib64`, `/bin`, `/etc`) and Read/Write access only to the build directory and `/tmp`.
-- Sensitive paths (e.g., `~/.ssh`, `~/.gnupg`) are excluded from the wrapped process's allowed filesystem view.
+## Smart Fallback and Lifecycle
 
-### 2. Network Layer (Landlock v4 or Namespace Fallback)
-- Restricts TCP connect/bind capabilities through port-based controls.
-- If Landlock network support is unavailable, the tool uses an isolated network namespace (`CLONE_NEWNET`), detaching the process from the host network.
+The tool detects kernel capabilities and chooses the enforcement path accordingly. If native enforcement is unavailable or a kernel-level error occurs, the tool exits closed and aborts the installation.
 
-### 3. Secrets Layer (Environment Scrubbing)
-- Initiates an explicit allowlist-based sanitization of environment variables.
-- Only policy-compliant variables (e.g., `PATH`, `LANG`, `MAKEFLAGS`) are exposed to the build environment.
-
-### 4. Process Layer (Causal Inheritance)
-- Ensures all descendant processes inherit the enforced DCC context.
-- Uses `CLONE_NEWUSER` with UID/GID mapping for compatibility with unprivileged builds in namespace fallback mode.
-
-## Fail-Closed Logic
-
-Security is maintained through strict causal boundaries. If any layer of the DCC framework fails to initialize or encounters a kernel-level error, the tool **exits closed** and aborts the installation process to prevent unshielded execution.
+`dcc-shield` operates as a transient wrapper. It runs only for the duration of the build/install process and leaves no background daemon or permanent service running.
 
 ## Coverage Matrix
 
 | Attack Vector | Mitigation Layer | Expected Behavior | Test Evidence |
 | :--- | :--- | :--- | :--- |
-| **Exfiltration via connect()** | Landlock or Namespace | Connection denied / Network unreachable | `strace` confirms `connect()` error |
-| **SSH Key / Secret Theft** | Landlock (FS Layer) | Access denied to `~/.ssh` | Verified via `test-sandbox.sh` |
-| **Environment Variable Theft** | Secrets Layer | Hidden from sandbox environment | Scrubbing audit successful |
-| **Child-process escape** | Process Layer | Restrictions persist in all descendants | Verified via sub-shell testing |
+| **Exfiltration via connect()** | Landlock or Namespace | Connection denied / Network unreachable | Empirical trace confirms `connect()` error |
+| **SSH Key / Secret Theft** | Landlock (FS Layer) | Access denied to `~/.ssh` | Verified behavior under test via `test-sandbox.sh` |
+| **Environment Variable Theft** | Secrets Layer | Hidden from sandbox environment | Scrubbing audit confirms behavior |
+| **Child-process escape** | Process Layer | Restrictions persist in descendant processes | Verified behavior under test via sub-shell testing |
 
-## The Axiom Exclusion Advantage (DCC vs. Blacklisting)
+## Enforcing Causal Boundaries (PAE Concept)
 
-In June 2026, the **"Atomic Arch"** supply chain attack compromised over 1,900 orphaned AUR packages. Traditional Antivirus and EDR solutions rely on **Blacklisting**, requiring the identification of all 1,900+ signatures to protect users.
+The design focuses on enforcing causal boundaries rather than maintaining package signatures, reducing dependence on per-package blacklists. 
 
-`dcc-shield` implements **Positive Axiom Exclusion (PAE)**. The shield is completely blind to package names and hashes. By enforcing physical causal boundaries (dropping `connect()` routing and isolating the filesystem via Landlock) strictly during the build phase, the engine mathematically neutralizes the payload delivery mechanism of all 1,900+ infected packages universally.
+**Positive Axiom Exclusion (PAE)** is a conceptual framing for this enforcement model, meaning only explicitly permitted causal paths are allowed. During the June 2026 "Atomic Arch" supply chain attack, malicious payloads were delivered via orphaned AUR packages. By restricting network and filesystem access during the build phase, this enforcement model mitigates such payload delivery mechanisms without requiring per-package signature updates.
 
-To see the empirical proof of this neutralization, including step-by-step methodology, test environments, and raw syscall traces from an in-vivo attack simulation, review the [Atomic Arch Forensic Report](proofs/atomic-arch/REPORT.md).
+## Forensic Report
 
-## Auditability & Verification
+A detailed forensic report of the test setup and empirical validation is available in the [Atomic Arch Forensic Report](proofs/atomic-arch/REPORT.md). This report provides reproducible evidence of the observed behavior under test conditions.
 
-The included test suite provides empirical evidence of the DCC isolation layers.
+## Auditability and Verification
 
-### What is being verified?
-1.  **Syscall Denied:** Uses `strace` to confirm that unauthorized `connect()` or `open()` calls are denied or fail under isolation.
-2.  **Inheritance Proof:** Spawns sub-shells to ensure child processes cannot escape the DCC boundaries.
-3.  **Capability Selection:** Verifies that the tool detects kernel capabilities and selects the appropriate enforcement layer.
+The included test suite provides empirical evidence of the isolation layers. It verifies that:
+1. Unauthorized syscalls are denied or fail under isolation.
+2. Child processes inherit the DCC boundaries.
+3. Kernel capabilities are detected and the correct enforcement path is selected.
+
+## Project Positioning
+
+This is an open-source project currently focused on AUR-specific workflows. The long-term direction is to generalize this enforcement model to broader package-installation workflows once the AUR implementation is stabilized.
 
 ---
 **MetaSpace.Bio Logic Engine Project**  
