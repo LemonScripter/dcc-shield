@@ -51,15 +51,13 @@ Security is maintained through strict causal boundaries. If any layer of the DCC
 | **Environment Variable Theft** | Secrets Layer | Hidden from sandbox environment | Scrubbing audit successful |
 | **Child-process escape** | Process Layer | Restrictions persist in all descendants | Verified via sub-shell testing |
 
-## Usage
+## The Axiom Exclusion Advantage (DCC vs. Blacklisting)
 
-```bash
-# Build the static binary
-make
+In June 2026, the **"Atomic Arch"** supply chain attack compromised over 1,900 orphaned AUR packages. Traditional Antivirus and EDR solutions rely on **Blacklisting**, requiring the identification of all 1,900+ signatures to protect users.
 
-# Wrap your AUR helper (creates the DCC universe)
-./dcc-shield paru -S target-package
-```
+`dcc-shield` implements **Positive Axiom Exclusion (PAE)**. The shield is completely blind to package names and hashes. By enforcing physical causal boundaries (dropping `connect()` routing and isolating the filesystem via Landlock) strictly during the build phase, the engine mathematically neutralizes the payload delivery mechanism of all 1,900+ infected packages universally.
+
+To see the empirical proof of this neutralization, including step-by-step methodology, test environments, and raw syscall traces from an in-vivo attack simulation, review the [Atomic Arch Forensic Report](proofs/atomic-arch/REPORT.md).
 
 ## Auditability & Verification
 

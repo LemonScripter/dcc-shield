@@ -1,0 +1,78 @@
+strace: Process 13445 attached
+strace: Process 13446 attached
+strace: Process 13447 attached
+strace: Process 13448 attached
+strace: Process 13449 attached
+[dcc-shield] Environment scrubbing complete.
+[dcc-shield] Landlock network support unavailable. Activating Fallback Mode.
+[dcc-shield] Network Namespace isolation enforced (CLONE_NEWNET).
+[dcc-shield] Executing in DCC Universe: bash
+strace: Process 13450 attached
+[pid 13450] +++ exited with 0 +++
+[pid 13445] --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13450, si_uid=1001, si_status=0, si_utime=0, si_stime=0} ---
+strace: Process 13451 attached
+>>> [pdfcrack] Running malicious build payload...
+strace: Process 13452 attached
+strace: Process 13453 attached
+strace: Process 13454 attached
+strace: Process 13455 attached
+strace: Process 13456 attached
+strace: Process 13457 attached
+strace: Process 13458 attached
+strace: Process 13459 attached
+strace: Process 13460 attached
+strace: Process 13461 attached
+strace: Process 13462 attached
+[pid 13461] connect(19, {sa_family=AF_UNIX, sun_path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+[pid 13461] connect(19, {sa_family=AF_UNIX, sun_path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13461] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13462] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+[pid 13460] connect(19, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("169.254.169.254")}, 16) = -1 ENETUNREACH (Network is unreachable)
+npm ERR! code EAI_AGAIN
+npm ERR! syscall getaddrinfo
+npm ERR! errno EAI_AGAIN
+npm ERR! request to https://registry.npmjs.org/atomic-lockfile failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /home/lszok/.npm/_logs/2026-06-15T18_19_54_984Z-debug-0.log
+[pid 13460] +++ exited with 0 +++
+[pid 13459] +++ exited with 0 +++
+[pid 13461] +++ exited with 0 +++
+[pid 13462] +++ exited with 0 +++
+[pid 13457] +++ exited with 0 +++
+[pid 13456] +++ exited with 0 +++
+[pid 13455] +++ exited with 0 +++
+[pid 13454] +++ exited with 0 +++
+[pid 13453] +++ exited with 0 +++
+[pid 13458] +++ exited with 1 +++
+[pid 13452] +++ exited with 1 +++
+[pid 13451] --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13452, si_uid=0, si_status=1, si_utime=99 /* 0.99 s */, si_stime=19 /* 0.19 s */} ---
+[pid 13451] +++ exited with 1 +++
+[pid 13444] --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=13451, si_uid=1001, si_status=1, si_utime=0, si_stime=0} ---
+[pid 13449] +++ exited with 1 +++
+[pid 13448] +++ exited with 1 +++
+[pid 13447] +++ exited with 1 +++
+[pid 13446] +++ exited with 1 +++
+[pid 13445] +++ exited with 1 +++
++++ exited with 1 +++
