@@ -1,38 +1,47 @@
-# dcc-shield: Zero-Dependency AUR Sandbox
+# dcc-shield (v2.0): AUR Workflow Causal Enforcer
 
-`dcc-shield` is a lightweight security wrapper designed to reduce the risk of supply-chain exfiltration attacks during AUR package builds. It enforces a "Default-Deny" network policy on wrapped processes, limiting the ability of `PKGBUILD` scripts to exfiltrate sensitive data (such as `~/.ssh` or environment variables) over the network.
+`dcc-shield` targets the Arch Linux AUR package installation workflow, transforming it into a formally constrained **Digital Causal Closure (DCC)** scope. It reduces the risk of supply-chain exfiltration and malicious build-script behavior by bounding the build/install process within a policy-compliant causal universe.
 
-## Threat Model & Scope
+## Threat Model & Scope (AUR-Specific)
 
-- **Attacker Capabilities:** We assume the attacker has successfully injected malicious code into an AUR `PKGBUILD` or its downloaded source, which executes under the build user’s privileges.
-- **In Scope:** `dcc-shield` specifically targets **outbound network exfiltration** during the execution of the wrapped command. 
-- **Out of Scope:** `dcc-shield` is **not** a replacement for manual `PKGBUILD` reviews. It does **not** restrict filesystem modifications. An attacker can still tamper with the built package, drop persistent backdoors, or alter local files accessible to the build user. Filesystem tampering, local persistence, and built-package modifications are explicitly out of scope.
+- **Attacker Capabilities:** We assume a malicious AUR `PKGBUILD`, downloaded source, or build-time script executing with the privileges of the build user.
+- **In Scope:** `dcc-shield` targets outbound network exfiltration, filesystem tampering, environment variable theft (secrets), SSH key theft, and child-process escape attempts during the package build phase.
+- **Boundaries:** The tool is designed to secure the AUR package installation workflow. Host integrity, kernel compromise, firmware exploits, or physical attacks are outside the DCC scope of this installation sandbox. It is not a substitute for full host hardening or manual `PKGBUILD` reviews.
 
-## Security Architecture & Failure Modes
+## Multi-Layer DCC Enforcement
 
-The tool utilizes a dual-layer network enforcement design. It is engineered to fail closed on critical setup errors but falls back gracefully across isolation layers where appropriate.
+The v2.0 engine implements a multi-layer isolation model to ensure the AUR install process remains causally closed. Within the DCC-defined universe, only policy-compliant actions may execute.
 
-1.  **Primary Layer: Landlock LSM (Kernel 6.7+)**
-    - Leverages the `go-landlock` library to restrict TCP capabilities.
-    - Specifically restricts `LANDLOCK_ACCESS_NET_CONNECT_TCP` and `LANDLOCK_ACCESS_NET_BIND_TCP` through port-based controls.
-    - **Note:** This is a capability-based restriction, not domain/IP allowlisting.
-    - The enforced security context is inherited by all child processes.
-    - **Failure Mode:** If Landlock setup fails or is unsupported by the kernel, the tool attempts the namespace fallback.
+1.  **Filesystem Layer (Landlock ABI v1-v2):**
+    - Enforces a strict whitelist: Read-Only access to the standard toolchain (`/usr`, `/lib`, `/bin`, `/etc`) and Read/Write access only to the build directory and `/tmp`.
+    - Sensitive paths (e.g., `~/.ssh`, `~/.gnupg`) are removed from the process's causal reach.
 
-2.  **Secondary Layer: Linux Namespaces (Kernel 5.13+)**
-    - If Landlock network support is unavailable, the tool uses an isolated network namespace (`CLONE_NEWNET`).
-    - The wrapped process is not exposed to external network interfaces and is isolated from the host network.
+2.  **Network Layer (Landlock v4 or Namespace Fallback):**
+    - Restricts TCP connect/bind capabilities through port-based controls.
+    - If Landlock network support is unavailable, the tool uses an isolated network namespace (`CLONE_NEWNET`), detaching the process from the host network.
+
+3.  **Secrets Layer (Environment Scrubbing):**
+    - Initiates "Environment Scrubbing" to remove non-essential host variables.
+    - Only policy-compliant variables (e.g., `PATH`, `LANG`, `MAKEFLAGS`) are exposed to the build environment.
+
+4.  **Process Layer (Causal Inheritance):**
+    - Ensures all child processes (gcc, make, sh) inherit the enforced DCC context.
     - Uses `CLONE_NEWUSER` with UID/GID mapping for compatibility with unprivileged builds.
-    - **Failure Mode:** If the namespace fallback also fails, the tool **exits closed** and aborts the build process to prevent unshielded execution.
+
+## Fail-Closed Logic
+
+Security is maintained through strict causal boundaries. If any layer of the DCC framework fails to initialize or encounters a kernel-level error (e.g., unsupported ABI or permission limits), the tool **exits closed** and aborts the installation process to prevent unshielded execution.
 
 ## Coverage Matrix
 
 | Attack Vector | Mitigation Layer | Expected Behavior | Test Evidence |
 | :--- | :--- | :--- | :--- |
 | **Exfiltration via connect()** | Landlock or Namespace | Connection denied / Network unreachable | `strace` confirms `connect()` error |
-| **Child-process inheritance** | Landlock or Namespace | Restrictions persist in spawned sub-shells | Verified via `test-sandbox.sh` |
-| **Landlock unavailable** | Fallback to `CLONE_NEWNET` | Executes in isolated namespace | Kernel capability detection test |
-| **Non-network file changes** | None (Out of Scope) | Modifications allowed | Fails by design (Filesystem is out of scope) |
+| **SSH Key / Secret Theft** | Landlock (FS Layer) | Access denied to `~/.ssh` | Verified via `test-sandbox.sh` |
+| **Environment Variable Theft** | Secrets Layer | Hidden from sandbox environment | Scrubbing audit successful |
+| **Child-process escape** | Process Layer | Restrictions persist in all descendants | Inheritance test pass (Tokyo Server) |
+| **Non-whitelisted file changes**| Landlock (FS Layer) | Access denied to non-build paths | Fails by design (Out of Scope) |
+| **Kernel/Host compromise** | None (Out of Scope) | Modifications allowed | N/A (Outside DCC scope) |
 
 ## Usage
 
@@ -40,31 +49,22 @@ The tool utilizes a dual-layer network enforcement design. It is engineered to f
 # Build the static binary
 make
 
-# Wrap your AUR helper
+# Wrap your AUR helper (creates the DCC universe)
 ./dcc-shield paru -S target-package
 ```
 
 ## Auditability & Verification
 
-For a security tool to be credible, its enforcement must be verifiable. `dcc-shield` includes a test suite to provide empirical evidence of isolation.
-
-### Running the Test Suite
-The included `test-sandbox.sh` script automates the verification process:
-
-```bash
-# Requirements: strace, curl, grep
-chmod +x test-sandbox.sh
-./test-sandbox.sh
-```
+The included test suite provides empirical evidence of the DCC isolation layers.
 
 ### What is being verified?
-1.  **Syscall Denied:** Uses `strace` to confirm that the `connect()` syscall is denied or results in a network error.
-2.  **Inheritance Proof:** Spawns a sub-shell and attempts a network operation to ensure that child processes cannot escape the sandbox.
-3.  **Capability Selection:** Verifies that the tool correctly detects kernel capabilities and selects either Landlock or the namespace fallback as appropriate.
+1.  **Syscall Denied:** Uses `strace` to confirm that unauthorized `connect()` or `open()` calls result in a network error or are denied by the kernel.
+2.  **Inheritance Proof:** Spawns sub-shells to ensure child processes cannot escape the DCC boundaries.
+3.  **Capability Selection:** Verifies that the tool correctly detects kernel capabilities (Landlock ABI version) and selects the appropriate enforcement layer.
 
-## Feedback & Contributions
+## Future Generalization (`dcc-shield-all`)
 
-This project serves as a practical demonstration of the **Digital Causal Closure (DCC)** principle. The source code is open for audit and the tests are fully automated. We actively welcome contributions and feedback regarding the refinement of Landlock rules or the integration of other kernel-native isolation mechanisms, such as `seccomp-bpf`.
+This repository serves as the AUR-specific foundation for a future generalized `dcc-shield-all` project. While the current scope is formally bounded to the AUR workflow, the broader version will later apply these DCC principles to arbitrary package management systems.
 
 ---
 **MetaSpace.Bio Logic Engine Project**  
