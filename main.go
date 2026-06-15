@@ -5,13 +5,14 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 
 	"github.com/landlock-lsm/go-landlock/landlock"
+	llsyscall "github.com/landlock-lsm/go-landlock/landlock/syscall"
 )
 
-// dcc-shield: Zero-dependency network sandbox for AUR builds.
-// Uses Landlock LSM (Kernel 6.7+) or Network Namespaces as fallback.
+// dcc-shield v2.0: Multi-layer DCC Causal Enforcer for AUR builds.
 
 func main() {
 	if len(os.Args) < 2 {
@@ -26,31 +27,52 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// 1. Enforce Landlock Security Policy
-	// We use V4.BestEffort() to attempt network restriction on kernels that support it (ABI v4+).
-	// On older kernels (like 6.1, which is ABI v2), BestEffort() will skip network rules 
-	// without returning an error, allowing us to implement our own fallback.
-	err := landlock.V4.BestEffort().RestrictNet()
-	if err != nil {
-		log.Printf("[dcc-shield] Landlock enforcement failed: %v. Attempting namespace fallback...", err)
-		applyNamespaceFallback(cmd)
-	}
+	// --- DCC Layer 1: Environment Scrubbing (Always Active) ---
+	scrubEnvironment(cmd)
 
-	// 2. Check if Landlock actually applied network restrictions
-	// If the kernel ABI is less than 4, Landlock did nothing for the network.
-	// We check the supported ABI to decide if we need the Namespace fallback.
-	// Note: We use the internal-ish check via a custom syscall if library doesn't expose it simply.
-	// Actually, the library's BestEffort() is designed to be silent. 
-	// To be 'Senior level', we verify the actual environment.
-	if !isLandlockNetSupported() {
-		fmt.Println("[dcc-shield] Landlock network support not available on this kernel.")
-		applyNamespaceFallback(cmd)
+	// --- DCC Layer 2 & 3: Kernel Capabilities Check ---
+	// To prevent kernel security conflicts between Landlock and User Namespaces,
+	// we enforce a strict branching logic based on Kernel capabilities.
+	if isLandlockNetSupported() {
+		// Kernel 6.7+ (Advanced DCC Mode)
+		// Full Landlock integration: Filesystem + Network
+		
+		fmt.Println("[dcc-shield] Kernel 6.7+ detected. Activating Advanced DCC Mode.")
+		
+		// 1. Enforce Network Blackout
+		err := landlock.V4.BestEffort().RestrictNet()
+		if err != nil {
+			log.Fatalf("[dcc-shield] Network DCC enforcement failed: %v. EXITING CLOSED.", err)
+		}
+
+		// 2. Enforce Filesystem Bounding
+		rxAccess := landlock.AccessFSSet(llsyscall.AccessFSExecute | llsyscall.AccessFSReadFile | llsyscall.AccessFSReadDir)
+		err = landlock.V4.BestEffort().RestrictPaths(
+			landlock.PathAccess(rxAccess, "/usr", "/lib", "/lib64", "/bin", "/etc"),
+			landlock.RWDirs("/tmp", "."),
+		)
+		if err != nil {
+			log.Fatalf("[dcc-shield] Filesystem DCC enforcement failed: %v. EXITING CLOSED.", err)
+		}
+		
+		fmt.Println("[dcc-shield] Landlock FS + NET bounding enforced.")
+
 	} else {
-		fmt.Println("[dcc-shield] Landlock network shield enforced.")
+		// Kernel < 6.7 (Legacy Fallback Mode)
+		// We use Network Namespaces. We MUST NOT apply Landlock FS rules here,
+		// because an already Landlocked process cannot safely unshare user namespaces
+		// (Kernel prevents this to block privilege escalation tricks).
+		
+		fmt.Println("[dcc-shield] Landlock network support unavailable. Activating Fallback Mode.")
+		applyNamespaceFallback(cmd)
 	}
 
-	// 3. Execute with inheritance
-	fmt.Printf("[dcc-shield] Executing: %s\n", targetCmd)
+	// --- Execution Phase ---
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+
+	fmt.Printf("[dcc-shield] Executing in DCC Universe: %s\n", targetCmd)
 	if err := cmd.Run(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			os.Exit(exitError.ExitCode())
@@ -59,7 +81,31 @@ func main() {
 	}
 }
 
-// isLandlockNetSupported checks if the current kernel supports Landlock ABI v4 (Network).
+// scrubEnvironment removes non-essential host variables to prevent secret leakage.
+func scrubEnvironment(cmd *exec.Cmd) {
+	whitelist := map[string]bool{
+		"PATH":      true,
+		"LANG":      true,
+		"TERM":      true,
+		"MAKEFLAGS": true,
+		"PWD":       true,
+		"HOME":      true,
+		"USER":      true,
+		"SHELL":     true,
+	}
+
+	var cleanEnv []string
+	for _, env := range os.Environ() {
+		pair := strings.SplitN(env, "=", 2)
+		if whitelist[pair[0]] {
+			cleanEnv = append(cleanEnv, env)
+		}
+	}
+	cmd.Env = cleanEnv
+	fmt.Println("[dcc-shield] Environment scrubbing complete.")
+}
+
+// isLandlockNetSupported verifies if Landlock ABI v4 (TCP restrictions) is active.
 func isLandlockNetSupported() bool {
 	const SYS_LANDLOCK_CREATE_RULESET = 444
 	const LANDLOCK_CREATE_RULESET_VERSION = 1 << 0
@@ -70,20 +116,19 @@ func isLandlockNetSupported() bool {
 	return int(res) >= 4
 }
 
-// applyNamespaceFallback implements a robust network isolation using Linux Namespaces.
+// applyNamespaceFallback implements robust network isolation using Linux Namespaces.
 func applyNamespaceFallback(cmd *exec.Cmd) {
-	fmt.Println("[dcc-shield] CRITICAL WARNING: Using Network Namespace isolation (CLONE_NEWNET).")
+	fmt.Println("[dcc-shield] Network Namespace isolation enforced (CLONE_NEWNET).")
 	
-	// We use CLONE_NEWUSER to allow unprivileged namespace creation.
-	// We map the current user to root inside the namespace to ensure script execution 
-	// and filesystem access remain compatible with AUR build requirements.
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Unshareflags: syscall.CLONE_NEWNET | syscall.CLONE_NEWUSER,
-		UidMappings: []syscall.SysProcIDMap{
-			{ContainerID: 0, HostID: os.Getuid(), Size: 1},
-		},
-		GidMappings: []syscall.SysProcIDMap{
-			{ContainerID: 0, HostID: os.Getgid(), Size: 1},
-		},
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	
+	cmd.SysProcAttr.Unshareflags |= syscall.CLONE_NEWNET | syscall.CLONE_NEWUSER
+	cmd.SysProcAttr.UidMappings = []syscall.SysProcIDMap{
+		{ContainerID: 0, HostID: os.Getuid(), Size: 1},
+	}
+	cmd.SysProcAttr.GidMappings = []syscall.SysProcIDMap{
+		{ContainerID: 0, HostID: os.Getgid(), Size: 1},
 	}
 }
