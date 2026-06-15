@@ -1,28 +1,37 @@
 # dcc-shield: Zero-Dependency AUR Sandbox
 
-`dcc-shield` is a lightweight security wrapper designed to protect Arch Linux users from supply-chain attacks during AUR package builds. It enforces a **"Default-Deny"** network policy on any process it wraps, ensuring that malicious `PKGBUILD` scripts cannot exfiltrate sensitive data (like `~/.ssh` or environment variables).
+`dcc-shield` is a lightweight security wrapper designed to protect Arch Linux users from supply-chain exfiltration attacks during AUR package builds. It enforces a "Default-Deny" network policy on any process it wraps, ensuring that `PKGBUILD` scripts cannot trivially exfiltrate sensitive data (like `~/.ssh` or environment variables) over the network.
 
-## Security Architecture
+## Threat Model & Scope
 
-The tool utilizes a **Dual-Layer Causal Enforcement** logic:
+- **Attacker Capabilities:** We assume the attacker has successfully injected malicious code into an AUR `PKGBUILD` or its downloaded source, which executes with the privileges of the build user.
+- **In Scope:** `dcc-shield` specifically targets **network exfiltration** during the execution of the wrapped command. 
+- **Out of Scope:** `dcc-shield` is **not** a complete replacement for manual `PKGBUILD` reviews. It does **not** restrict filesystem modifications. An attacker can still tamper with the built package, drop persistent backdoors, or alter local files accessible to the build user. The tool only restricts outbound network connectivity during the build phase.
+
+## Security Architecture & Failure Modes
+
+The tool utilizes a Dual-Layer network enforcement logic. It is designed to fail closed on execution errors but falls back gracefully across isolation layers.
 
 1.  **Primary Layer: Landlock LSM (Kernel 6.7+)**
-    - Leverages the official `go-landlock` library to enforce network restrictions at the kernel level.
-    - Specifically handles `LANDLOCK_ACCESS_NET_CONNECT_TCP` and `LANDLOCK_ACCESS_NET_BIND_TCP` with no allowed rules, creating a total network blackout for the process.
-    - Security context is automatically inherited by all child processes (make, gcc, scripts).
+    - Leverages the `go-landlock` library to restrict TCP network capabilities.
+    - Explicitly drops `LANDLOCK_ACCESS_NET_CONNECT_TCP` and `LANDLOCK_ACCESS_NET_BIND_TCP` rights for the process. This restricts port-based TCP connectivity, irrespective of domains or IP addresses.
+    - Security context is inherited by all child processes.
+    - **Failure Mode:** If Landlock enforcement partially succeeds or if the ABI version is unsupported, the tool logs the limitation and automatically falls back to the Secondary Layer.
 
 2.  **Secondary Layer: Linux Namespaces (Kernel 5.13+)**
-    - If Landlock network support is unavailable, the tool transparently falls back to **Network Namespaces** (`CLONE_NEWNET`).
-    - The process is executed in a detached network namespace with no interfaces (no `eth0`, no `lo`), making network communication physically impossible.
-    - Uses **User Namespaces** (`CLONE_NEWUSER`) with proper UID/GID mapping to ensure full compatibility with unprivileged AUR builds.
+    - If Landlock network support is unavailable, the tool falls back to Network Namespaces (`CLONE_NEWNET`).
+    - The process is executed in a detached network namespace without external interfaces (no `eth0`), isolating it from the host network.
+    - Uses User Namespaces (`CLONE_NEWUSER`) with UID/GID mapping to ensure compatibility with unprivileged builds.
+    - **Failure Mode:** If the namespace fallback setup fails (e.g., due to permission limits), the underlying execution will fail, causing the tool to **fail closed** and abort the build process securely.
 
-## Limitations & Scope
+## Coverage Matrix
 
-`dcc-shield` specifically targets network exfiltration, the most common goal of AUR-based supply-chain attacks. It is **not** a complete replacement for manual `PKGBUILD` reviews. While it effectively isolates the process from the internet, it does not currently restrict filesystem modifications (e.g., persistent backdoors or malicious file tampering). The tool's primary mission is to prevent "data theft" (exfiltration) during the critical build phase.
-
-## Professional Context
-
-`dcc-shield` implements the **Digital Causal Closure (DCC)** principle. By restricting the network capability at the moment of process creation, we break the causal chain required for a data exfiltration attack to succeed. Even if a zero-day exploit allows code execution within the build script, the attacker is trapped in a network-silent environment.
+| Attack Vector | Mitigation Layer | Expected Behavior | Test Evidence |
+| :--- | :--- | :--- | :--- |
+| **Exfiltration via connect()** | Landlock or Namespace | Connection refused / Network unreachable | `strace` confirms `connect()` fails |
+| **Child-process inheritance** | Landlock or Namespace | Restrictions persist in spawned sub-shells | Verified via `test-sandbox.sh` |
+| **Landlock unavailable** | Fallback to `CLONE_NEWNET` | Executes in isolated namespace | Kernel ABI fallback logic tested |
+| **Non-network file changes** | None (Out of Scope) | Modifications allowed | N/A |
 
 ## Usage
 
