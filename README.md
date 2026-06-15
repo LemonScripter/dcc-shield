@@ -7,7 +7,7 @@
 The enforcement mechanisms used in this tool are practical implementations of the causal isolation principles detailed in the MetaSpace research:
 
 - **Research Paper:** The Causal Operating System: Digital Causal Closure for Autonomous Systems ([DOI: 10.5281/zenodo.20384700](https://doi.org/10.5281/zenodo.20384700))
-- **Formal Specification:** [BioOS Causal Constitution (PDF)](https://metaspace.bio/bioos_causal_constitution_en.pdf)
+- **Formal Specification:** [BioOS Causal Constitution (PDF)](https://bioos.metaspace.bio/bioos_causal_constitution_en.pdf)
 
 ## Threat Model & Scope (AUR-Specific)
 
