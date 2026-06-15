@@ -58,5 +58,16 @@ During the "Ultimate Stealer" test:
 - **Environment:** The process environment was successfully scrubbed. The dumped `stolen.env` contained only safe variables (e.g., `PATH`, `PWD`); injected AWS keys were stripped before execution.
 - **Process Inheritance:** The backgrounded `curl` process was correctly bound to the DCC universe and blocked (`ENETUNREACH`).
 
-## 6. Conclusion
+## 6. How to Reproduce This Test
+The entire experiment is deterministic and can be reproduced by any security researcher.
+
+1. **Setup Environment:** Use any modern Linux distribution (Kernel 6.1+). Ensure `strace`, `nodejs`, and `npm` are installed.
+2. **Compile Shield:** Clone the repository and compile the engine: `go build -o dcc-shield main.go`.
+3. **Execute Payload:** Navigate to the `payloads/` directory provided in this repository. Choose any of the mocked environments (e.g., `PKGBUILD_htop`) and run it under the shield while tracing syscalls:
+   ```bash
+   strace -f -e connect,openat ./dcc-shield bash ./run_build.sh
+   ```
+4. **Verify Output:** You will immediately observe `ENETUNREACH` for network attempts and `ENOENT` for file access attempts, matching the logs provided in the `logs/` directory.
+
+## 7. Conclusion
 The test conclusively proves that the `dcc-shield` provides a mathematically robust defense against supply chain attacks. By enforcing strict causal boundaries during the build phase, the shield neutralizes both payload delivery and data exfiltration, rendering campaigns like "Atomic Arch" completely inert, regardless of the package targeted.
