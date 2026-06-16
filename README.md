@@ -4,7 +4,7 @@
 [![Status](https://img.shields.io/badge/Status-Hardened--STABLE-blue)](README.md)
 [![Project](https://img.shields.io/badge/BioOS-Causal--Security-green)](https://bioos.metaspace.bio)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20384700-purple)](https://doi.org/10.5281/zenodo.20384700)
-[![Media](https://img.shields.io/badge/Media--Article-orange)](https://open.substack.com/pub/szokelaci/p/when-trust-becomes-an-attack-surface)
+[![Media](https://img.shields.io/badge/Media-Article-orange)](https://open.substack.com/pub/szokelaci/p/when-trust-becomes-an-attack-surface)
 
 `dcc-shield` targets the Arch Linux AUR package installation workflow and constrains it within a Digital Causal Closure (DCC)-defined scope. It reduces the risk of supply-chain exfiltration and malicious build-script behavior during AUR installs.
 
